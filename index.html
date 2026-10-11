@@ -156,6 +156,8 @@
   .empty { margin: 0; color: var(--muted); font-size: .9rem; }
   .note { margin: 0; font-size: .9rem; color: var(--muted); }
   [hidden] { display: none !important; }
+  .site-footer { margin: 32px auto 0; font-size: .85rem; color: var(--muted); text-align: center; }
+  .site-footer p { margin: 0; }
 </style>
 </head>
 <body>
@@ -265,6 +267,23 @@
     0 K, &minus;273.15 &deg;C or &minus;459.67 &deg;F.</p>
   </section>
 </main>
+
+<footer class="site-footer">
+  <p>&copy; <span id="year">2026</span> Scott's Tools</p>
+  <p id="sponsor"></p>
+</footer>
+
+<script>
+  {
+    const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const MAX_NUMBER = 10;
+    const pick = n => Math.floor(Math.random() * n);
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+    document.getElementById('sponsor').textContent = 'This site has been brought to you by the ' +
+      (pick(2) ? 'letter ' + LETTERS[pick(LETTERS.length)] : 'number ' + (pick(MAX_NUMBER) + 1)) + '.';
+  }
+</script>
 
 <script>
   const IN_PER_FT = 12;
