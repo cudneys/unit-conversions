@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit Converter</title>
+<style>
+  :root {
+    --bg: #f6efe4;
+    --card: #fffaf2;
+    --ink: #2b1d10;
+    --muted: #7a6650;
+    --line: #e2d3bd;
+    --accent: #b5651d;
+    --accent-ink: #fff;
+    --result-bg: #3a2413;
+    --result-ink: #fbe9cf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a130d;
+      --card: #251b12;
+      --ink: #f3e6d3;
+      --muted: #b09a80;
+      --line: #40301f;
+      --accent: #e0913f;
+      --accent-ink: #1a130d;
+      --result-bg: #100b07;
+      --result-ink: #fbe9cf;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px 48px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 560px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font: 600 2rem/1.2 Georgia, "Times New Roman", serif; }
+  .lede { margin: 0 0 24px; color: var(--muted); }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 16px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .tabs button {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  label, .label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .field + .field { margin-top: 20px; }
+  input, select, button { font: inherit; color: inherit; }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  input.entry { font-size: 1.25rem; }
+  input:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  input[aria-invalid="true"] { border-color: #c0392b; }
+  .hint { margin: 6px 0 0; font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets button {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .presets button[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .result {
+    background: var(--result-bg);
+    color: var(--result-ink);
+    border-radius: 12px;
+    padding: 24px 20px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .result .label { color: inherit; opacity: .7; }
+  .big {
+    font: 600 3rem/1.1 Georgia, "Times New Roman", serif;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .big small { font-size: 1.25rem; font-weight: 400; }
+  .alt { margin-top: 6px; opacity: .8; font-variant-numeric: tabular-nums; }
+  .summary { margin: 12px 0 0; font-size: .9rem; opacity: .7; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 4px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  tr.group:not(:first-child) th { padding-top: 20px; }
+  td:first-child { color: var(--muted); }
+  td:last-child { font-weight: 600; overflow-wrap: anywhere; }
+  td .dims { display: block; font-size: .85rem; font-weight: 400; color: var(--muted); }
+  .empty { margin: 0; color: var(--muted); font-size: .9rem; }
+  .note { margin: 0; font-size: .9rem; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Unit Converter</h1>
+  <p class="lede">Metric to imperial and back again, in decimals and fractions.</p>
+
+  <div class="tabs" role="tablist" aria-label="Kind of measurement">
+    <button type="button" role="tab" id="tab-length" aria-controls="panel-length">Length</button>
+    <button type="button" role="tab" id="tab-volume" aria-controls="panel-volume">Volume</button>
+    <button type="button" role="tab" id="tab-temperature" aria-controls="panel-temperature">Temperature</button>
+  </div>
+
+  <section class="panel" id="panel-length" role="tabpanel" aria-labelledby="tab-length">
+    <div class="card">
+      <div class="field">
+        <label for="length-entry">Measurement</label>
+        <input type="text" class="entry" id="length-entry" value="7 cm" autocomplete="off" spellcheck="false" autocapitalize="off">
+        <p class="hint">Type a number and a unit: 7cm, 2.75 in, 2-3/4", 5' 6 1/2", 1.2 m, 3 yd.</p>
+      </div>
+      <div class="field">
+        <div class="label">Unit</div>
+        <div class="presets units"></div>
+        <p class="hint">Used when the measurement has no unit typed in.</p>
+      </div>
+      <div class="field">
+        <div class="label">Round fractions to the nearest</div>
+        <div class="presets" id="denoms"></div>
+      </div>
+    </div>
+    <div class="result" aria-live="polite">
+      <div class="label">Converts to</div>
+      <div class="big"></div>
+      <div class="alt"></div>
+      <p class="summary"></p>
+    </div>
+    <div class="card">
+      <table><tbody class="rows"></tbody></table>
+      <p class="empty">Enter a measurement to see every conversion.</p>
+    </div>
+    <p class="note">An inch is exactly 25.4 mm, so these conversions are exact; only the fraction rows are rounded,
+    and they say by how much. Feet and inches can be combined (5 ft 6 in), and so can any other units (1 m 20 cm).</p>
+  </section>
+
+  <section class="panel" id="panel-volume" role="tabpanel" aria-labelledby="tab-volume" hidden>
+    <div class="card">
+      <div class="field">
+        <label for="volume-entry">Measurement</label>
+        <input type="text" class="entry" id="volume-entry" value="250 ml" autocomplete="off" spellcheck="false" autocapitalize="off">
+        <p class="hint">Type a number and a unit: 250ml, 1.5 L, 3/4 cup, 1 cup 2 tbsp, 12 fl oz, 2 gal, 40 cu in.</p>
+      </div>
+      <div class="field">
+        <div class="label">Unit</div>
+        <div class="presets units"></div>
+        <p class="hint">Used when the measurement has no unit typed in.</p>
+      </div>
+    </div>
+    <div class="result" aria-live="polite">
+      <div class="label">Converts to</div>
+      <div class="big"></div>
+      <div class="alt"></div>
+      <p class="summary"></p>
+    </div>
+    <div class="card">
+      <table><tbody class="rows"></tbody></table>
+      <p class="empty">Enter a measurement to see every conversion.</p>
+    </div>
+    <p class="note">These are US customary measures: a US gallon is 231 cubic inches (3.785 L) and a cup is 8 US fl oz.
+    British imperial pints, quarts and gallons are about 20% larger. Fractions of teaspoons, tablespoons and cups are
+    rounded to the nearest 1/8.</p>
+  </section>
+
+  <section class="panel" id="panel-temperature" role="tabpanel" aria-labelledby="tab-temperature" hidden>
+    <div class="card">
+      <div class="field">
+        <label for="temperature-entry">Temperature</label>
+        <input type="text" class="entry" id="temperature-entry" value="20 C" autocomplete="off" spellcheck="false" autocapitalize="off">
+        <p class="hint">Type a number and a scale: 20C, 68 °F, -40 f, 98.6F, 300 K.</p>
+      </div>
+      <div class="field">
+        <div class="label">Scale</div>
+        <div class="presets units"></div>
+        <p class="hint">Used when the temperature has no scale typed in.</p>
+      </div>
+    </div>
+    <div class="result" aria-live="polite">
+      <div class="label">Converts to</div>
+      <div class="big"></div>
+      <div class="alt"></div>
+      <p class="summary"></p>
+    </div>
+    <div class="card">
+      <table><tbody class="rows"></tbody></table>
+      <p class="empty">Enter a temperature to see every conversion.</p>
+    </div>
+    <p class="note">&deg;F = &deg;C &times; 9/5 + 32, and K = &deg;C + 273.15. Nothing can be colder than absolute zero:
+    0 K, &minus;273.15 &deg;C or &minus;459.67 &deg;F.</p>
+  </section>
+</main>
+
+<script>
+  const IN_PER_FT = 12;
+  const ABSOLUTE_ZERO_C = -273.15;
+  const DENOMS = [8, 16, 32, 64];
+  const VOLUME_DENOM = 8;
+  const SYSTEM_NAMES = { metric: 'Metric', imperial: 'Imperial' };
+
+  // A whole number, decimal, fraction or mixed number: 5, 5.5, 3/4, 5 1/2, 5-1/2.
+  const NUMBER = String.raw`\d+[\s-]+\d+\s*\/\s*\d+|\d+\s*\/\s*\d+|\d+\.?\d*|\.\d+`;
+
+  let fractionDenom = 16;
+
+  // A unit that is a fixed multiple of its kind's base unit. `names` are what the user may type; plurals are added.
+  function unit(id, sym, label, sys, factor, names) {
+    return { id, sym, label, sys, names: names.split(' '), to: v => v * factor, from: base => base / factor };
+  }
+
+  const kinds = {
+    // Base unit: millimeters.
+    length: {
+      fallback: 'cm',
+      pills: ['mm', 'cm', 'm', 'in', 'ft', 'yd'],
+      headline: { metric: ['mm', 'cm', 'm', 'km'], imperial: ['in', 'ft', 'mi'] },
+      units: [
+        unit('mm', 'mm', 'Millimeters', 'metric', 1, 'mm millimeter millimetre'),
+        unit('cm', 'cm', 'Centimeters', 'metric', 10, 'cm centimeter centimetre'),
+        unit('m', 'm', 'Meters', 'metric', 1000, 'm meter metre'),
+        unit('km', 'km', 'Kilometers', 'metric', 1e6, 'km kilometer kilometre'),
+        unit('in', 'in', 'Inches', 'imperial', 25.4, 'in inch inches "'),
+        unit('ft', 'ft', 'Feet', 'imperial', 304.8, "ft foot feet '"),
+        unit('yd', 'yd', 'Yards', 'imperial', 914.4, 'yd yard'),
+        unit('mi', 'mi', 'Miles', 'imperial', 1609344, 'mi mile'),
+      ],
+      // A bare number after feet is inches: 5' 6.
+      impliedAfter: { ft: 'in' },
+      alt(base) {
+        const inches = base / 25.4;
+        const f = toFraction(inches, fractionDenom);
+        return approx(f, inches) + fmtFraction(f) + '″' +
+          (f.value >= IN_PER_FT ? ' · ' + approx(f, inches) + fmtFeetInches(f.value) : '');
+      },
+      extraRows(u, base) {
+        if (u.id !== 'in') return [];
+        const inches = u.from(base);
+        const f = toFraction(inches, fractionDenom);
+        const diff = f.value - inches;
+        const sub = isExact(f, inches) ? 'exact' :
+          'rounded ' + (diff > 0 ? 'up' : 'down') + ' by ' + fmtSmall(Math.abs(diff)) + ' in';
+        return [
+          { label: 'Inches, nearest 1/' + fractionDenom, value: approx(f, inches) + fmtFraction(f) + '″', sub },
+          { label: 'Feet and inches', value: approx(f, inches) + fmtFeetInches(f.value) },
+        ];
+      },
+    },
+
+    // Base unit: milliliters. Imperial units are US customary.
+    volume: {
+      fallback: 'ml',
+      pills: ['ml', 'l', 'tsp', 'tbsp', 'floz', 'cup', 'pt', 'qt', 'gal'],
+      headline: { metric: ['ml', 'l'], imperial: ['tsp', 'tbsp', 'floz', 'cup', 'qt', 'gal'] },
+      units: [
+        unit('ml', 'mL', 'Milliliters', 'metric', 1, 'ml milliliter millilitre cc cucm cucentimeter cucentimetre'),
+        unit('l', 'L', 'Liters', 'metric', 1000, 'l liter litre'),
+        unit('m3', 'm³', 'Cubic meters', 'metric', 1e6, 'cum cumeter cumetre'),
+        unit('tsp', 'tsp', 'Teaspoons', 'imperial', 4.92892159375, 'tsp teaspoon'),
+        unit('tbsp', 'tbsp', 'Tablespoons', 'imperial', 14.78676478125, 'tbsp tbs tablespoon'),
+        unit('floz', 'fl oz', 'Fluid ounces', 'imperial', 29.5735295625, 'floz oz ounce fluidoz fluidounce'),
+        unit('cup', 'cups', 'Cups', 'imperial', 236.5882365, 'cup c'),
+        unit('pt', 'pt', 'Pints', 'imperial', 473.176473, 'pt pint'),
+        unit('qt', 'qt', 'Quarts', 'imperial', 946.352946, 'qt quart'),
+        unit('gal', 'gal', 'Gallons', 'imperial', 3785.411784, 'gal gallon'),
+        unit('cuin', 'cu in', 'Cubic inches', 'imperial', 16.387064, 'cuin cuinch cuinches'),
+        unit('cuft', 'cu ft', 'Cubic feet', 'imperial', 28316.846592, 'cuft cufoot cufeet'),
+      ],
+      // "in3" and "cubic inches" both become "cuin".
+      normalize: s => s
+        .replace(/(?<![a-z])(cm|m|in|ft)(\^3|³|3)(?![\d\/.])/g, 'cu$1')
+        .replace(/(?<![a-z])(cubic|cu)\s+/g, 'cu'),
+      sub(u, base) {
+        if (!['tsp', 'tbsp', 'cup'].includes(u.id)) return '';
+        const v = u.from(base);
+        const f = toFraction(v, VOLUME_DENOM);
+        const sym = u.id === 'cup' && f.value <= 1 ? 'cup' : u.sym;
+        return f.value === 0 || (isExact(f, v) && f.num === 0) ? '' : approx(f, v) + fmtFraction(f) + ' ' + sym;
+      },
+    },
+
+    // Base unit: kelvin.
+    temperature: {
+      fallback: 'c',
+      pills: ['c', 'f', 'k'],
+      units: [
+        { id: 'c', sym: '°C', label: 'Celsius', names: ['c', 'celsius', 'centigrade'],
+          to: v => v - ABSOLUTE_ZERO_C, from: k => k + ABSOLUTE_ZERO_C },
+        { id: 'f', sym: '°F', label: 'Fahrenheit', names: ['f', 'fahrenheit'],
+          to: v => (v - 32) * 5 / 9 - ABSOLUTE_ZERO_C, from: k => (k + ABSOLUTE_ZERO_C) * 9 / 5 + 32 },
+        { id: 'k', sym: 'K', label: 'Kelvin', names: ['k', 'kelvin'],
+          to: v => v, from: k => k },
+      ],
+      signed: true,
+    },
+  };
+
+  Object.entries(kinds).forEach(([name, kind]) => {
+    kind.name = name;
+    kind.unit = kind.fallback;
+    kind.byId = {};
+    kind.byName = {};
+    kind.units.forEach(u => {
+      kind.byId[u.id] = u;
+      u.names.forEach(n => { kind.byName[n] = u; kind.byName[n + 's'] = u; });
+    });
+  });
+
+  function parseNumber(text) {
+    const parts = text.match(/\d*\.?\d+|\d+/g).map(Number);
+    if (parts.length === 1) return parts[0];
+    const den = parts.pop();
+    const num = parts.pop();
+    return den ? (parts[0] || 0) + num / den : NaN;
+  }
+
+  // Reads "7cm", "2-3/4 in" or "5' 6 1/2\"" into terms of { value, unit, text } and their total in the kind's base
+  // unit. Terms with no unit typed use `fallback`. Returns { empty } or { invalid } when there is nothing to convert.
+  function parseMeasure(kind, text, fallback) {
+    let s = text.trim().toLowerCase()
+      .replace(/(\d),(?=\d{3})/g, '$1')
+      .replace(/[‘’′]/g, "'")
+      .replace(/[“”″]|''/g, '"')
+      .replace(/−/g, '-')
+      .replace(/\.(?!\d)/g, '');
+    if (kind.normalize) s = kind.normalize(s);
+    if (!s) return { empty: true };
+
+    let sign = 1;
+    if (kind.signed) {
+      const m = s.match(/^([+-])\s*/);
+      if (m) { sign = m[1] === '-' ? -1 : 1; s = s.slice(m[0].length); }
+    }
+
+    const re = new RegExp('(' + NUMBER + ')([^\\d.]*)', 'y');
+    const terms = [];
+    while (re.lastIndex < s.length) {
+      const m = re.exec(s);
+      if (!m) return { invalid: true };
+      const value = sign * parseNumber(m[1]);
+      const name = m[2].replace(/[\s\-,+°]|degrees?|deg/g, '');
+      const prev = terms[terms.length - 1];
+      let u;
+      if (name) u = kind.byName[name];
+      else if (!prev) u = kind.byId[fallback];
+      else if (kind.impliedAfter) u = kind.byId[kind.impliedAfter[prev.unit.id]];
+      if (!u || isNaN(value)) return { invalid: true };
+      terms.push({ value, unit: u, text: m[1], typed: !!name });
+    }
+    if (kind.signed && terms.length > 1) return { invalid: true };
+
+    const base = terms.reduce((total, t) => total + (kind.signed ? t.unit.to(t.value) : t.value * t.unit.to(1)), 0);
+    if (base < -1e-9) return { invalid: true };
+    return { terms, base: Math.max(0, base) };
+  }
+
+  // Six significant digits, or every digit of the whole part if that's longer: 2.75591, 0.0765529, 1,609,344.
+  function fmt(n) {
+    const whole = Math.abs(n) >= 1 ? Math.floor(Math.log10(Math.abs(n))) + 1 : 0;
+    const rounded = Number(n.toPrecision(Math.min(21, Math.max(6, whole))));
+    return (rounded || 0).toLocaleString(undefined, { maximumSignificantDigits: Math.min(21, Math.max(6, whole)) });
+  }
+
+  function fmtSmall(n) {
+    return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  }
+
+  // Rounds to the nearest 1/denom (a power of two) and reduces: toFraction(2.7559, 16) -> 2 3/4.
+  function toFraction(value, denom) {
+    const total = Math.round(value * denom);
+    const whole = Math.floor(total / denom);
+    let num = total - whole * denom;
+    let den = denom;
+    while (num && num % 2 === 0) { num /= 2; den /= 2; }
+    return { whole, num, den, value: total / denom };
+  }
+
+  function isExact(f, value) {
+    return Math.abs(f.value - value) < 1e-6;
+  }
+
+  function approx(f, value) {
+    return isExact(f, value) ? '' : '≈ ';
+  }
+
+  // 2-3/4, 3/4, 2
+  function fmtFraction(f) {
+    if (!f.num) return String(f.whole);
+    return (f.whole ? f.whole + '-' : '') + f.num + '/' + f.den;
+  }
+
+  // 66.5 -> 5′ 6-1/2″; expects inches already rounded to the fraction precision.
+  function fmtFeetInches(inches) {
+    const ft = Math.floor(inches / IN_PER_FT);
+    return ft.toLocaleString() + '′ ' + fmtFraction(toFraction(inches - ft * IN_PER_FT, fractionDenom)) + '″';
+  }
+
+  function row(u, base, kind) {
+    return { label: u.label, value: fmt(u.from(base)) + ' ' + u.sym, sub: kind.sub ? kind.sub(u, base) : '' };
+  }
+
+  // What to show for a parsed measurement: the headline conversion, a line under it, and the grouped table rows.
+  function view(kind, parsed) {
+    const base = parsed.base;
+    const from = parsed.terms[0].unit;
+
+    if (!kind.headline) {
+      const others = kind.units.filter(u => u !== from);
+      const main = others[0];
+      return {
+        big: fmt(main.from(base)), sym: main.sym,
+        alt: others.slice(1).map(u => fmt(u.from(base)) + ' ' + u.sym).join(' · '),
+        groups: [{ rows: kind.units.map(u => row(u, base, kind)) }],
+      };
+    }
+
+    // Headline in the other system, using the largest unit that gives at least 1.
+    const to = from.sys === 'metric' ? 'imperial' : 'metric';
+    const candidates = kind.headline[to].map(id => kind.byId[id]);
+    let i = candidates.length - 1;
+    while (i > 0 && candidates[i].from(base) < 1) i--;
+    const main = candidates[i];
+    const next = candidates[i - 1] || candidates[i + 1];
+    const alt = kind.alt && to === 'imperial' ? kind.alt(base) : fmt(next.from(base)) + ' ' + next.sym;
+
+    const groups = [to, from.sys].map(sys => ({
+      title: SYSTEM_NAMES[sys],
+      rows: kind.units.filter(u => u.sys === sys).flatMap(u =>
+        [row(u, base, kind)].concat(kind.extraRows ? kind.extraRows(u, base) : [])),
+    }));
+    return { big: fmt(main.from(base)), sym: main.sym, alt, groups };
+  }
+
+  function el(tag, text, className) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  }
+
+  function update(kind) {
+    const panel = kind.panel;
+    const parsed = parseMeasure(kind, kind.entry.value, kind.unit);
+    const ok = !!parsed.terms;
+    kind.parsed = parsed;
+    kind.entry.setAttribute('aria-invalid', String(!!parsed.invalid));
+
+    const big = panel.querySelector('.big');
+    const rows = panel.querySelector('.rows');
+    big.textContent = '';
+    rows.textContent = '';
+    panel.querySelector('table').hidden = !ok;
+    panel.querySelector('.empty').hidden = ok;
+
+    const active = ok ? parsed.terms[0].unit.id : kind.unit;
+    kind.pillButtons.forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.unit === active)));
+
+    if (!ok) {
+      big.textContent = '—';
+      panel.querySelector('.alt').textContent = '';
+      panel.querySelector('.summary').textContent =
+        parsed.invalid ? "Can't read that measurement. Check the number and the unit." : '';
+      return;
+    }
+
+    const v = view(kind, parsed);
+    big.append(el('span', v.big), ' ', el('small', v.sym));
+    panel.querySelector('.alt').textContent = v.alt;
+    panel.querySelector('.summary').textContent =
+      parsed.terms.map(t => fmt(t.value) + ' ' + t.unit.sym).join(' + ') +
+      (parsed.terms.length > 1 ? ' = ' + fmt(parsed.terms[0].unit.from(parsed.base)) + ' ' + parsed.terms[0].unit.sym : '');
+
+    v.groups.forEach(group => {
+      if (group.title) {
+        const tr = document.createElement('tr');
+        tr.className = 'group';
+        const th = el('th', group.title);
+        th.colSpan = 2;
+        th.scope = 'colgroup';
+        tr.append(th);
+        rows.append(tr);
+      }
+      group.rows.forEach(r => {
+        const tr = document.createElement('tr');
+        const value = el('td', r.value);
+        if (r.sub) value.append(el('span', r.sub, 'dims'));
+        tr.append(el('td', r.label), value);
+        rows.append(tr);
+      });
+    });
+  }
+
+  function pill(text, onClick) {
+    const btn = el('button', text);
+    btn.type = 'button';
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  Object.values(kinds).forEach(kind => {
+    kind.panel = document.getElementById('panel-' + kind.name);
+    kind.entry = kind.panel.querySelector('.entry');
+    kind.entry.addEventListener('input', () => update(kind));
+
+    // Picking a unit converts the number already typed from that unit instead, dropping any unit typed with it.
+    kind.pillButtons = kind.pills.map(id => {
+      const btn = pill(kind.byId[id].sym, () => {
+        kind.unit = id;
+        const parsed = kind.parsed;
+        if (parsed.terms && parsed.terms.some(t => t.typed)) {
+          kind.entry.value = (parsed.terms[0].value < 0 ? '-' : '') + parsed.terms[0].text;
+        }
+        update(kind);
+      });
+      btn.dataset.unit = id;
+      return btn;
+    });
+    kind.panel.querySelector('.units').append(...kind.pillButtons);
+  });
+
+  const denomButtons = DENOMS.map(d => pill('1/' + d, () => {
+    fractionDenom = d;
+    denomButtons.forEach((btn, i) => btn.setAttribute('aria-pressed', String(DENOMS[i] === d)));
+    update(kinds.length);
+  }));
+  document.getElementById('denoms').append(...denomButtons);
+  denomButtons[DENOMS.indexOf(fractionDenom)].setAttribute('aria-pressed', 'true');
+
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+
+  function showTab(name) {
+    tabs.forEach(tab => {
+      const selected = tab.id === 'tab-' + name;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
+    });
+    history.replaceState(null, '', '#' + name);
+  }
+
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => showTab(tab.id.slice(4)));
+    tab.addEventListener('keydown', e => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (!step) return;
+      const next = tabs[(i + step + tabs.length) % tabs.length];
+      next.focus();
+      next.click();
+    });
+  });
+
+  Object.values(kinds).forEach(update);
+  showTab(kinds[location.hash.slice(1)] ? location.hash.slice(1) : 'length');
+</script>
+</body>
+</html>
