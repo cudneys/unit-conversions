@@ -449,6 +449,8 @@
 
   // Six significant digits, or every digit of the whole part if that's longer: 2.75591, 0.0765529, 1,609,344.
   function fmt(n) {
+    // Converting to the base unit and back can leave 0 as something like 1e-14.
+    if (Math.abs(n) < 1e-10) n = 0;
     const whole = Math.abs(n) >= 1 ? Math.floor(Math.log10(Math.abs(n))) + 1 : 0;
     const rounded = Number(n.toPrecision(Math.min(21, Math.max(6, whole))));
     return (rounded || 0).toLocaleString(undefined, { maximumSignificantDigits: Math.min(21, Math.max(6, whole)) });
