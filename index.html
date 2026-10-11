@@ -40,6 +40,28 @@
   main { max-width: 560px; margin: 0 auto; }
   h1 { margin: 0 0 4px; font: 600 2rem/1.2 Georgia, "Times New Roman", serif; }
   .lede { margin: 0 0 24px; color: var(--muted); }
+  .site-nav {
+    margin: -32px -16px 32px;
+    padding: 10px 16px;
+    background: var(--result-bg);
+    color: var(--result-ink);
+    border-bottom: 1px solid var(--line);
+  }
+  .site-nav > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 16px;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .site-nav a { color: inherit; text-decoration: none; border-radius: 999px; }
+  .site-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .site-nav .brand { margin-right: auto; font: 600 1.15rem/1.2 Georgia, "Times New Roman", serif; }
+  .site-nav ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 -10px; padding: 0; list-style: none; }
+  .site-nav li a { display: block; padding: 4px 10px; font-size: .9rem; opacity: .8; }
+  .site-nav li a:hover { opacity: 1; }
+  .site-nav li a[aria-current="page"] { background: var(--accent); color: var(--accent-ink); opacity: 1; }
   .tabs {
     display: flex;
     gap: 4px;
@@ -137,6 +159,16 @@
 </style>
 </head>
 <body>
+<nav class="site-nav" aria-label="Scott's Tools">
+  <div>
+    <a class="brand" href="https://scottstools.com/">Scott's Tools</a>
+    <ul>
+      <li><a href="https://bfc.scottstools.com/">Board Feet</a></li>
+      <li><a href="https://shellac.scottstools.com/">Shellac</a></li>
+      <li><a href="https://units.scottstools.com/" aria-current="page">Units</a></li>
+    </ul>
+  </div>
+</nav>
 <main>
   <h1>Unit Converter</h1>
   <p class="lede">Metric to imperial and back again, in decimals and fractions.</p>
